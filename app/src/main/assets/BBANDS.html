@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <style>
+    .source{
+        text-decoration:  none;
+    }
+    </style>
+    <script src="https://code.highcharts.com/stock/highstock.js"></script>
+    <script src="https://code.highcharts.com/stock/modules/exporting.js"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script type="text/javascript">
+    var SERVER_URL = "http://nodedemo.us-east-2.elasticbeanstalk.com/";
+        function sendDataToAndroid(data) {
+            JSONStr.getChart(data);
+        }
+    var subtitle = '<a class = "source" id="subtitle" target = "_blank" href="https://www.alphavantage.co/"> Source:Alpha Vantage </a>';
+    function formatDate(dateString){
+        var temp = dateString.split("-");
+        return temp[temp.length - 2] + "/" + temp[temp.length - 1];
+    }
+
+function parseThreeSet(data, indicator, indicatorOne, indicatorTwo, indicatorThree){
+    var date = [];
+    var priceOne = [];
+    var priceTwo = [];
+    var priceThree = [];
+    var counter = 0;
+    var Indicator = data["Meta Data"]["2: Indicator"];
+    var tempKey = "Technical Analysis: " + indicator;
+    for (var day in data[tempKey]){
+        counter ++;
+        date.push(formatDate(day));
+        priceOne.push(parseFloat(data[tempKey][day][indicatorOne]));
+        priceTwo.push(parseFloat(data[tempKey][day][indicatorTwo]));
+        priceThree.push(parseFloat(data[tempKey][day][indicatorThree]));
+        if (counter > 131) {
+            break;
+        }
+    }
+
+
+    return {
+        symbol: data["Meta Data"]["1: Symbol"],
+        indicator: Indicator,
+        date: date,
+        priceOne: priceOne,
+        priceTwo: priceTwo,
+        priceThree: priceThree,
+        min: Math.min(Math.min(...priceOne), Math.min(...priceTwo), Math.min(...priceThree)),
+        max: Math.max(Math.max(...priceOne), Math.max(...priceTwo), Math.max(...priceThree))
+    }
+}
+
+function drawThreeset(data, subtitle, name, legendOne, legendTwo, legendThree) {
+    var radius = 2;
+    var symbol = data.symbol;
+    var chartConfig = {
+        chart: {
+            type: 'spline',
+            zoomType: 'x'
+        },
+
+        title: {
+            text: data.indicator
+        },
+        subtitle: {
+            text: subtitle,
+            useHTML: true
+        },
+
+        xAxis: {
+            tickInterval: 5,
+            categories: data['date'].reverse()
+        },
+
+        yAxis: {
+            title: {
+                text: name,
+            },
+            min: data.min,
+            max: data.max,
+            tickInterval: 5
+        },
+        tooltip: {
+            valueDecimals: 3
+        },
+
+        plotOptions: {
+            spline: {
+                marker: {
+                    enabled: false,
+                    symbol: 'square',
+                    radius: radius
+                },
+                animation: false,
+                threshold: null
+            }
+        },
+        legend: {
+            align: 'center',
+            verticalAlign: 'bottom'
+        },
+
+        series: [
+            {
+                name: symbol + " " + legendOne,
+                data: data.priceOne.reverse(),
+                color: '#1c9b17',
+                lineWidth: 0.5
+            },
+
+            {
+                name: symbol + " " + legendTwo,
+                data: data.priceTwo.reverse(),
+                color: '#1472ff',
+                lineWidth: 0.5
+            },
+            {
+                name: symbol + " " + legendThree,
+                data: data.priceThree.reverse(),
+                color: '#0b050a',
+                lineWidth: 0.5
+            }
+        ]
+
+    };
+    new Highcharts.chart('stockChart', chartConfig);
+
+    return JSON.stringify(chartConfig);
+}
+
+    </script>
+</head>
+<body>
+<div id="stockChart"></div>
+<script type="text/javascript">
+    var symbol = window.JSONStr.getSymbol();
+        $.ajax({
+            type: 'GET',
+            url: SERVER_URL,
+            data: {
+                "symbol": symbol,
+                "indicator": "BBANDS"
+            },
+
+            success: function(response) {
+                try {
+                    var obj = JSON.parse(response);
+                    data = parseThreeSet(obj, "BBANDS", "Real Lower Band", "Real Upper Band",
+                        "Real Middle Band" );
+                    var BBANDSChart = drawThreeset(data, subtitle, "BBANDS", "Real Lower Band", "Real Upper Band", "Real Middle Band");
+                     var post = {};
+        var chart_4_Post = BBANDSChart;
+        post.type = 'image/png';
+        post.async = true;
+        post.options = chart_4_Post;
+
+               $.ajax({
+            type: 'POST',
+            url: 'http://export.highcharts.com/',
+            data: post,
+            success: function (response) {
+                console.log("FB Response");
+                sendDataToAndroid(response);
+            }
+        });
+
+                }
+                catch (err){
+                    console.log(err);
+                    sendDataToAndroid("Error");
+                }
+
+            }
+        });
+
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">TitleTab</string>
+    <string name="tab_text_1">CURRENT</string>
+    <string name="tab_text_2">HISTORICAL</string>
+    <string name="tab_text_3">NEWS</string>
+    <string name="facebook_app_id">1312253632214298</string>
+</resources>

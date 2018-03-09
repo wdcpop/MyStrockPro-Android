@@ -1,0 +1,37 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="node.frontend.titletab.SecondActivity">
+
+    <TextView
+        android:id="@+id/errorMsgNews"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:layout_marginLeft="40sp"
+        android:layout_marginTop="90sp"
+        android:layout_weight="0"
+        android:text="Failed to load news data"
+        android:textColor="@color/colorAccent"
+        android:textSize="25sp" />
+
+    <ListView
+        android:id="@+id/newsListView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        >
+    </ListView>
+
+        <ProgressBar
+            android:id="@+id/progress_bar_news"
+            android:layout_centerHorizontal="true"
+            android:layout_centerVertical="true"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            />
+
+
+</LinearLayout>

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <style>
+    .source{
+        text-decoration:  none;
+    }
+    </style>
+    <script src="https://code.highcharts.com/stock/highstock.js"></script>
+    <script src="https://code.highcharts.com/stock/modules/exporting.js"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script type="text/javascript">
+    var SERVER_URL = "http://nodedemo.us-east-2.elasticbeanstalk.com/";
+        function sendDataToAndroid(data) {
+            JSONStr.getChart(data);
+        }
+    function formatDate(dateString){
+        var temp = dateString.split("-");
+        return temp[temp.length - 2] + "/" + temp[temp.length - 1];
+    }
+
+    function parseOneSet(data, indicator) {
+        var date = [];
+        var prices = [];
+        var counter = 0;
+        var Indicator = data["Meta Data"]["2: Indicator"];
+        var name = indicator;
+        var tempKey = "Technical Analysis: " + indicator;
+        for (var day in data[tempKey]){
+            counter ++;
+            date.push(formatDate(day));
+            prices.push(parseFloat(data[tempKey][day][indicator]));
+            if (counter > 131) {
+                break;
+            }
+        }
+        return {
+            symbol: data["Meta Data"]["1: Symbol"],
+            indicator: Indicator,
+            date: date,
+            prices: prices,
+            min: Math.min(...prices),
+            max: Math.max(...prices)
+        }
+    }
+
+
+
+    </script>
+</head>
+<body>
+<div id="stockChart"></div>
+<script type="text/javascript">
+    var symbol = window.JSONStr.getSymbol();
+        $.ajax({
+            type: 'GET',
+            url: SERVER_URL,
+            data: {
+                "symbol": symbol,
+                "indicator": "RSI"
+            },
+
+            success: function(response) {
+                try {
+                    var RSIObj = JSON.parse(response);
+                    data = parseOneSet(RSIObj, "RSI");
+                    console.log(data.prices);
+        var chartConfig = {
+        chart: {
+            type: 'spline',
+            zoomType: 'x'
+        },
+
+        title: {
+            text: data.indicator
+        },
+        subtitle: {
+            text: '<a class = "source" id="subtitle" target = "_blank" href="https://www.alphavantage.co/"> Source:Alpha Vantage </a>',
+            useHTML: true
+        },
+
+        xAxis: {
+            tickInterval: 5,
+            categories: data['date'].reverse()
+        },
+
+        yAxis: {
+            title: {
+                text: name,
+            },
+            min: data.min,
+            max: data.max,
+            // tickInterval: 2.5
+        },
+        tooltip: {
+            valueDecimals: 3
+        },
+
+        plotOptions: {
+            spline: {
+                marker: {
+                    enabled: false,
+                    symbol: 'square',
+                    radius: 2
+                },
+                animation: false,
+                threshold: null
+            }
+        },
+        legend: {
+            align: 'center',
+            verticalAlign: 'bottom'
+        },
+
+        series: [{
+            name: symbol,
+            data: data.prices.reverse(),
+            color: '#ff001b',
+            lineWidth: 0.5
+        }]
+
+    };
+       new Highcharts.chart('stockChart', chartConfig);
+
+        var post = {};
+        var chart_4_Post = JSON.stringify(chartConfig);
+        post.type = 'image/png';
+        post.async = true;
+        post.options = chart_4_Post;
+
+               $.ajax({
+            type: 'POST',
+            url: 'http://export.highcharts.com/',
+            data: post,
+            success: function (response) {
+                console.log("FB Response");
+                sendDataToAndroid(response);
+            }
+        });
+
+
+                }
+                catch (err){
+                sendDataToAndroid("Error");
+                    console.log(err);
+                }
+
+            }
+        });
+
+</script>
+</body>
+</html>

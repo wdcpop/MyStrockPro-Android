@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <style>
+    .source{
+        text-decoration:  none;
+    }
+    </style>
+    <script src="https://code.highcharts.com/stock/highstock.js"></script>
+    <script src="https://code.highcharts.com/stock/modules/exporting.js"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script type="text/javascript">
+
+    var SERVER_URL = "http://nodedemo.us-east-2.elasticbeanstalk.com/";
+    var subtitle = '<a class = "source" id="subtitle" target = "_blank" href="https://www.alphavantage.co/"> Source:Alpha Vantage </a>';
+    function formatDate(dateString){
+        var temp = dateString.split("-");
+        return temp[temp.length - 2] + "/" + temp[temp.length - 1];
+    }
+
+    function getChangePercent(changeNum, lastDay){
+    return (changeNum * 100 / lastDay).toFixed(2);
+}
+
+function getChange(today, lastDay) {
+    return today - lastDay;
+}
+
+function parsePriceVolume(data){
+    var date = new Array();
+    var prices = new Array();
+    var shortDate = new Array();
+    var volumes = new Array();
+    var timeSeries = data['Time Series (Daily)'];
+    // var timeZone = data["Meta Data"]['5. Time Zone'];
+    var counter = 0;
+    for (var day in timeSeries){
+        date.push(day);
+        shortDate.push(formatDate(day));
+        prices.push(parseFloat(timeSeries[day]['4. close']));
+        volumes.push(parseInt(timeSeries[day]["5. volume"]));
+        counter++;
+        if(counter > 131) {
+            break;
+        }
+    }
+    var today = date[0];
+    if (data["Meta Data"]['3. Last Refreshed'].length > 10){
+        var timeStamp = data["Meta Data"]['3. Last Refreshed'] + ' EST';
+    }
+    else {
+        var timeStamp = data["Meta Data"]['3. Last Refreshed'] + ' 16:00:00 EST';
+    }
+
+    var changeNum = getChange(parseFloat(timeSeries[date[0]]['4. close']), parseFloat(timeSeries[date[1]]['4. close']));
+    var changePercentStr = getChangePercent(changeNum,parseFloat(timeSeries[date[1]]['4. close']));
+    // console.log("changePercentStr: " + changePercentStr);
+    return {
+        symbol: data["Meta Data"]["2. Symbol"],
+        prices: prices,
+        volumes: volumes,
+        minVolume: Math.min(...volumes),
+        maxVolume: Math.max(...volumes),
+        minPirce: Math.min(...prices),
+        maxPrice: Math.max(...prices),
+        open: parseFloat(timeSeries[today]['1. open']).toFixed(2),
+        close: parseFloat(timeSeries[today]['4. close']).toFixed(2),
+        change: changeNum.toFixed(2),
+        changePercent: changePercentStr,
+        low: timeSeries[today]['3. low'],
+        high: timeSeries[today]['2. high'],
+        volume: parseInt(timeSeries[today]['5. volume']).toLocaleString(),
+        lastPirce: parseFloat(timeSeries[date[1]]['4. close']).toFixed(2),
+        timeStamp: timeStamp,
+        date: shortDate,
+        dateShort: shortDate,
+        priceRange: parseFloat(timeSeries[today]['3. low']).toFixed(2) + " - " + parseFloat(timeSeries[today]['2. high']).toFixed(2)
+    }
+}
+
+function drawPriceVolume(priceVolume, subtitle) {
+    var symbol = priceVolume.symbol;
+    var radius = 2;
+    var chartConfig = {
+        chart: {
+            zoomType: 'x'
+        },
+        title: {
+            text: symbol + " Stock Price and Volume"
+        },
+        subtitle: {
+            text: subtitle,
+            useHTML: true
+        },
+
+        xAxis: {
+            tickInterval: 5,
+            categories: priceVolume.date.reverse()
+        },
+
+        yAxis: [{
+            title: {
+                text: 'Stock Price'
+            },
+            min: priceVolume.minPirce / 2,
+            max: priceVolume.maxPrice,
+            tickInterval: 5
+        },
+
+            {
+                gridLineWidth: 0,
+                title: {
+                    text: 'Volume'
+                },
+                opposite: true,
+                min: priceVolume.minVolume,
+                max: priceVolume.maxVolume * 3
+            }
+        ],
+
+        plotOptions: {
+            area: {
+                marker: {
+                    enabled: false,
+                    symbol: 'circle',
+                    radius: 2
+                },
+                threshold: null,
+
+                tooltip: {
+                    valueDecimals: 2
+                },
+
+
+            },
+
+            series: {
+                fillColor: "#E0DEFF"
+            },
+
+            column: {
+                pointWidth: 3
+            }
+
+        },
+
+        legend: {
+            // layout: 'vertical',
+            align: 'center',
+            verticalAlign: 'bottom'
+        },
+
+        series: [{
+            name: symbol,
+            data: priceVolume.prices.reverse(),
+            type: 'area',
+            color: '#415bf4'
+        },
+
+            {
+                name: symbol + ' Volume',
+                data: priceVolume.volumes.reverse(),
+                type: 'column',
+                yAxis: 1,
+                color: '#ff363b'
+            }
+        ]
+    };
+     new Highcharts.chart('stockChart', chartConfig);
+
+    return JSON.stringify(chartConfig);
+
+}
+
+    </script>
+</head>
+<body>
+<div id="stockChart"></div>
+<script type="text/javascript">
+function sendDataToAndroid(data) {
+            JSONStr.getChart(data);
+        }
+    var symbol = window.JSONStr.getSymbol();
+        $.ajax({
+            type: 'GET',
+            url: SERVER_URL,
+            data: {
+                "symbol": symbol
+            },
+
+            success: function(response) {
+                try {
+                    var obj = JSON.parse(response);
+                    PriceData = parsePriceVolume(obj);
+                    var priceChart = drawPriceVolume(PriceData, subtitle);
+
+                      var post = {};
+        var chart_4_Post = priceChart;
+        post.type = 'image/png';
+        post.async = true;
+        post.options = chart_4_Post;
+
+               $.ajax({
+            type: 'POST',
+            url: 'http://export.highcharts.com/',
+            data: post,
+            success: function (response) {
+                console.log("FB Response");
+                sendDataToAndroid(response);
+            }
+        });
+
+                }
+                catch (err){
+                    console.log(err);
+                    sendDataToAndroid("Error");
+                }
+
+            }
+        });
+
+</script>
+</body>
+</html>

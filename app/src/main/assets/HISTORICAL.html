@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <style>
+    .source{
+        text-decoration:  none;
+    }
+    </style>
+    <script src="https://code.highcharts.com/stock/highstock.js"></script>
+    <script src="https://code.highcharts.com/stock/modules/exporting.js"></script>
+    <script src="https://code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script type="text/javascript">
+    var SERVER_URL = "http://nodedemo.us-east-2.elasticbeanstalk.com/";
+    var subtitle = '<a class = "source" id="subtitle" target = "_blank" href="https://www.alphavantage.co/"> Source:Alpha Vantage </a>';
+    function sendDataToAndroid(data) {
+            JSONStr.getChart(data);
+        }
+
+function historicalData(priceResponse) {
+    var data = [];
+
+    var timeSeries = priceResponse['Time Series (Daily)'];
+    var counter = 0;
+    for (var day in timeSeries){
+        var oneDataPair = [];
+        var dateObj = Date.parse(day);
+        oneDataPair.push(dateObj);
+        oneDataPair.push(parseFloat(timeSeries[day]['4. close']));
+        data.push(oneDataPair);
+        counter++;
+        if(counter > 999) {
+            break;
+        }
+    }
+    return {
+        symbol: priceResponse["Meta Data"]["2. Symbol"],
+        chartData: data.reverse()
+    }
+}
+
+function drawhistoricalChart(info) {
+    subtitle = '<a class = "source" id="subtitle" target = "_blank" href="https://www.alphavantage.co/"> Source:Alpha Vantage </a>';
+
+     Highcharts.stockChart('historicalData', {
+
+         chart: {
+             zoomType: 'x'
+         },
+        title: {
+            text: info.symbol + " Stock Value"
+        },
+
+        subtitle: {
+            text: subtitle,
+            useHTML: true
+        },
+
+         yAxis: {
+             title: {
+                 text: "Stock Value",
+                 opposite: true
+             }
+         },
+
+         tooltip: {
+             split: false,
+             style:{
+                 fontSize: "9px",
+                 textAlign: "center"
+             }
+         },
+
+         rangeSelector: {
+             buttons: [{
+                 type: 'month',
+                 count: 1,
+                 text: '1m'
+             }, {
+                 type: 'month',
+                 count: 3,
+                 text: '3m'
+             }, {
+                 type: 'month',
+                 count: 6,
+                 text: '6m'
+             }, {
+                 type: 'ytd',
+                 text: 'YTD'
+             }, {
+                 type: 'year',
+                 count: 1,
+                 text: '1y'
+             }, {
+                 type: 'all',
+                 text: 'All'
+             }],
+
+             selected: 0
+         },
+
+        series: [{
+            name: info.symbol + ' Stock Price',
+            data: info['chartData'],
+            type: 'area',
+            threshold: null,
+
+            tooltip: {
+                valueDecimals: 2
+
+            }
+        }]
+    });
+
+}
+    </script>
+</head>
+<body>
+<div id="historicalData"></div>
+<script type="text/javascript">
+    var symbol = window.historical.getSymbol();
+         $.ajax({
+            type: 'GET',
+            url: SERVER_URL,
+            data: {
+            "symbol": symbol
+            },
+            success: function(response) {
+                try{
+                    var priceResponse = JSON.parse(response);
+                    stockChartData = historicalData(priceResponse);
+                    drawhistoricalChart(stockChartData);
+                    historical.getChart("historicalData");
+                }
+                catch(err){
+                historical.getChart("Error");
+                    console.log(err);
+                }
+            }
+        });
+
+</script>
+</body>
+</html>

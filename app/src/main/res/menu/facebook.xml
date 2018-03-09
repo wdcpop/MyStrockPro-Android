@@ -1,0 +1,24 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="node.frontend.titletab.SecondActivity">
+    <item
+        android:id="@+id/deletemsg1"
+        android:enabled="false"
+        android:orderInCategory="100"
+        android:title="Remove from Favorites?" />
+
+    <item
+        android:id="@+id/deletemsg2"
+        android:orderInCategory="100"
+        android:title="No"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/deletemsg3"
+        android:orderInCategory="100"
+        android:title="Yes"
+        app:showAsAction="never" />
+
+
+</menu>
